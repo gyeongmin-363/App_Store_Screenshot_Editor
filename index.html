@@ -41,12 +41,12 @@
             box-sizing: border-box;
         }
 
-        /* 개별 스크린샷 프레임 */
+        /* 개별 스크린샷 프레임 - 사용자의 요청에 따라 각진 모서리 유지 */
         .screenshot-frame {
             position: relative;
             min-width: 340px;
             height: 620px;
-            border-radius: 40px;
+            border-radius: 0; 
             padding: 40px 20px;
             display: flex;
             flex-direction: column;
@@ -54,7 +54,7 @@
             box-shadow: 0 15px 35px rgba(0,0,0,0.15);
             flex-shrink: 0;
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* 기본 배경 */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             overflow: hidden;
         }
 
@@ -85,7 +85,7 @@
             gap: 5px;
             background: white;
             padding: 5px;
-            border-radius: 20px;
+            border-radius: 8px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
@@ -94,7 +94,7 @@
             border: none;
             width: 32px;
             height: 32px;
-            border-radius: 50%;
+            border-radius: 4px;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             display: flex;
@@ -111,7 +111,7 @@
         .bg-config {
             background: white;
             padding: 8px;
-            border-radius: 15px;
+            border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
@@ -150,13 +150,13 @@
             border-bottom: 2px dashed rgba(255,255,255,0.6);
         }
 
-        /* 정교한 휴대폰 목업 */
+        /* 휴대폰 목업 - 사용자의 요청에 따라 둥근 모서리 유지 */
         .phone-mockup {
             width: 250px;
             height: 480px;
             background: var(--phone-frame);
-            border-radius: 38px;
-            padding: 8px;
+            border-radius: 40px; /* 둥근 모서리 복구 */
+            padding: 10px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             position: relative;
             border: 2px solid #333;
@@ -166,7 +166,7 @@
             width: 100%;
             height: 100%;
             background: #fff;
-            border-radius: 30px;
+            border-radius: 32px; /* 화면 영역도 둥글게 */
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -174,14 +174,22 @@
             justify-content: center;
             position: relative;
             background-size: cover;
-            background-position: center;
+            background-position: center center;
+            background-repeat: no-repeat;
+            cursor: move;
+        }
+
+        /* 드래그 앤 드랍 활성화 효과 */
+        .screen-content.drag-over {
+            background-color: rgba(0, 122, 255, 0.1);
+            border: 2px dashed var(--accent);
         }
 
         .upload-hint {
             color: #999;
             font-size: 12px;
             text-align: center;
-            cursor: pointer;
+            pointer-events: none;
         }
 
         /* 추가 버튼 */
@@ -189,7 +197,7 @@
             min-width: 340px;
             height: 620px;
             border: 3px dashed #ccc;
-            border-radius: 40px;
+            border-radius: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -208,7 +216,6 @@
 
         .add-frame-btn span { font-size: 50px; margin-bottom: 10px; }
 
-        /* 컬러 피커 숨김 및 커스텀 스타일 */
         input[type="color"] {
             border: none;
             width: 28px;
@@ -218,7 +225,6 @@
             background: none;
         }
 
-        /* 컬러 피커 2 숨김용 */
         .hidden { display: none; }
 
         /* 메시지 박스 */
@@ -241,7 +247,7 @@
 
     <header>
         <h1>App Store Screenshot Editor <span style="color:var(--accent)">Pro</span></h1>
-        <p>프레임을 추가하고 배경과 텍스트를 자유롭게 편집하세요.</p>
+        <p>드래그 앤 드랍으로 이미지를 추가하고 위치를 조절하세요.</p>
     </header>
 
     <div class="main-container" id="frame-container">
@@ -254,13 +260,13 @@
         </div>
     </div>
 
-    <div id="toast">이미지가 클립보드에 복사되었습니다!</div>
+    <div id="toast">알림 메시지</div>
 
     <script>
         const container = document.getElementById('frame-container');
         const addButton = document.querySelector('.add-frame-btn');
 
-        // 프레임 상태 관리 (색상 및 모드)
+        // 프레임 상태 관리
         const frameStates = {};
 
         /**
@@ -272,7 +278,13 @@
             // 초기 상태 설정
             frameStates[frameId] = {
                 mode: 'gradient',
-                colors: ['#667eea', '#764ba2']
+                colors: ['#667eea', '#764ba2'],
+                posX: 50,
+                posY: 50,
+                isDragging: false,
+                startX: 0,
+                startY: 0,
+                wasDragged: false
             };
 
             const frameHtml = `
@@ -280,6 +292,7 @@
                     <div class="controls">
                         <div class="btn-group">
                             <button class="btn-icon" onclick="copyFrame('${frameId}')" title="복사">📋</button>
+                            <button class="btn-icon" onclick="saveFrame('${frameId}')" title="저장">💾</button>
                             <button class="btn-icon" onclick="removeFrame('${frameId}')" title="삭제">❌</button>
                         </div>
                         <div class="bg-config">
@@ -293,28 +306,29 @@
                         <div class="description" contenteditable="true">이곳에 설명을 입력하세요.</div>
                     </div>
                     <div class="phone-mockup">
-                        <div class="screen-content" onclick="triggerUpload('${frameId}')">
-                            <div class="upload-hint">클릭하여 이미지 업로드</div>
+                        <div class="screen-content" 
+                             id="screen-${frameId}"
+                             onclick="triggerUpload('${frameId}')"
+                             onmousedown="handleImgMouseDown(event, '${frameId}')"
+                             ondragover="handleDragOver(event)"
+                             ondragleave="handleDragLeave(event)"
+                             ondrop="handleDrop(event, '${frameId}')">
+                            <div class="upload-hint">이미지 클릭/드래그 업로드<br>(업로드 후 드래그로 위치 조절)</div>
                             <input type="file" style="display:none" accept="image/*" onchange="handleImageUpload(event, '${frameId}')">
                         </div>
                     </div>
                 </div>
             `;
             
-            // 추가 버튼 앞에 삽입
             addButton.insertAdjacentHTML('beforebegin', frameHtml);
-            
-            // 초기 배경 렌더링
             applyBackground(frameId);
 
-            // 생성된 프레임으로 스크롤
             const newFrame = document.getElementById(frameId);
             newFrame.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
 
-        /**
-         * 단색 <-> 그라데이션 모드를 전환합니다.
-         */
+        // --- 배경 및 모드 관리 ---
+
         function toggleBgMode(id) {
             const state = frameStates[id];
             state.mode = state.mode === 'gradient' ? 'solid' : 'gradient';
@@ -326,6 +340,7 @@
                 color2Picker.classList.add('hidden');
                 toggleBtn.title = "그라데이션으로 전환";
                 toggleBtn.style.background = "#eee";
+                toggleBtn.style.color = "#333";
             } else {
                 color2Picker.classList.remove('hidden');
                 toggleBtn.title = "단색으로 전환";
@@ -336,21 +351,14 @@
             applyBackground(id);
         }
 
-        /**
-         * 프레임의 배경색 데이터를 업데이트합니다.
-         */
         function updateBg(id, color, index) {
             frameStates[id].colors[index] = color;
             applyBackground(id);
         }
 
-        /**
-         * 상태에 따라 실제 DOM의 배경 스타일을 적용합니다.
-         */
         function applyBackground(id) {
             const frame = document.getElementById(id);
             const state = frameStates[id];
-
             if (state.mode === 'solid') {
                 frame.style.background = state.colors[0];
             } else {
@@ -358,30 +366,142 @@
             }
         }
 
-        /**
-         * 이미지 업로드 처리
-         */
+        // --- 이미지 업로드 및 드래그 앤 드롭 ---
+
         function triggerUpload(id) {
-            const frame = document.getElementById(id);
-            frame.querySelector('input[type="file"]').click();
+            if (!frameStates[id].wasDragged) {
+                const frame = document.getElementById(id);
+                frame.querySelector('input[type="file"]').click();
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e, id) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                processImageFile(file, id);
+            }
         }
 
         function handleImageUpload(event, id) {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const screen = document.getElementById(id).querySelector('.screen-content');
-                    screen.style.backgroundImage = `url(${e.target.result})`;
-                    screen.querySelector('.upload-hint').style.display = 'none';
-                }
-                reader.readAsDataURL(file);
+                processImageFile(file, id);
             }
         }
 
-        /**
-         * 프레임을 삭제합니다.
-         */
+        function processImageFile(file, id) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const screen = document.getElementById(`screen-${id}`);
+                screen.style.backgroundImage = `url(${e.target.result})`;
+                screen.querySelector('.upload-hint').style.display = 'none';
+                frameStates[id].posX = 50;
+                frameStates[id].posY = 50;
+                screen.style.backgroundPosition = "50% 50%";
+            }
+            reader.readAsDataURL(file);
+        }
+
+        // --- 이미지 위치 조절 (Pan) ---
+
+        function handleImgMouseDown(e, id) {
+            const screen = document.getElementById(`screen-${id}`);
+            if (!screen.style.backgroundImage) return;
+
+            e.preventDefault();
+            const state = frameStates[id];
+            state.isDragging = true;
+            state.wasDragged = false;
+            state.startX = e.clientX;
+            state.startY = e.clientY;
+
+            const moveHandler = (moveEvent) => handleImgMouseMove(moveEvent, id);
+            const upHandler = () => {
+                state.isDragging = false;
+                window.removeEventListener('mousemove', moveHandler);
+                window.removeEventListener('mouseup', upHandler);
+            };
+
+            window.addEventListener('mousemove', moveHandler);
+            window.addEventListener('mouseup', upHandler);
+        }
+
+        function handleImgMouseMove(e, id) {
+            const state = frameStates[id];
+            if (!state.isDragging) return;
+
+            state.wasDragged = true;
+            const deltaX = e.clientX - state.startX;
+            const deltaY = e.clientY - state.startY;
+
+            state.posX -= deltaX * 0.2;
+            state.posY -= deltaY * 0.2;
+
+            state.posX = Math.max(0, Math.min(100, state.posX));
+            state.posY = Math.max(0, Math.min(100, state.posY));
+
+            const screen = document.getElementById(`screen-${id}`);
+            screen.style.backgroundPosition = `${state.posX}% ${state.posY}%`;
+
+            state.startX = e.clientX;
+            state.startY = e.clientY;
+        }
+
+        // --- 캡처 및 저장 기능 ---
+
+        async function copyFrame(id) {
+            const element = document.getElementById(id);
+            const controls = element.querySelector('.controls');
+            controls.style.opacity = '0';
+            element.style.transform = 'none';
+
+            try {
+                const blob = await htmlToImage.toBlob(element, { pixelRatio: 2, cacheBust: true });
+                const item = new ClipboardItem({ "image/png": blob });
+                await navigator.clipboard.write([item]);
+                showToast('이미지가 클립보드에 복사되었습니다!');
+            } catch (err) {
+                console.error(err);
+                alert('복사 중 오류가 발생했습니다.');
+            } finally {
+                controls.style.opacity = '';
+                element.style.transform = '';
+            }
+        }
+
+        async function saveFrame(id) {
+            const element = document.getElementById(id);
+            const controls = element.querySelector('.controls');
+            controls.style.opacity = '0';
+            element.style.transform = 'none';
+
+            try {
+                const dataUrl = await htmlToImage.toPng(element, { pixelRatio: 2, cacheBust: true });
+                const link = document.createElement('a');
+                link.download = `screenshot-${Date.now()}.png`;
+                link.href = dataUrl;
+                link.click();
+                showToast('이미지가 파일로 저장되었습니다!');
+            } catch (err) {
+                console.error(err);
+                alert('저장 중 오류가 발생했습니다.');
+            } finally {
+                controls.style.opacity = '';
+                element.style.transform = '';
+            }
+        }
+
         function removeFrame(id) {
             const frame = document.getElementById(id);
             frame.style.transform = "scale(0.8)";
@@ -392,52 +512,14 @@
             }, 300);
         }
 
-        /**
-         * 프레임을 이미지로 캡처하여 클립보드에 복사합니다.
-         */
-        async function copyFrame(id) {
-            const element = document.getElementById(id);
-            const controls = element.querySelector('.controls');
-            
-            // 캡처 시 불필요한 요소 숨김
-            controls.style.opacity = '0';
-            element.style.transform = 'none';
-
-            try {
-                // html-to-image 사용
-                const blob = await htmlToImage.toBlob(element, {
-                    pixelRatio: 2, // 고해상도 캡처
-                    cacheBust: true
-                });
-                
-                const item = new ClipboardItem({ "image/png": blob });
-                await navigator.clipboard.write([item]);
-                showToast();
-            } catch (err) {
-                console.error('Copy failed:', err);
-                alert('이미지 복사 중 오류가 발생했습니다.');
-            } finally {
-                // 원래 상태 복구
-                controls.style.opacity = '';
-                element.style.transform = '';
-            }
-        }
-
-        /**
-         * 간단한 알림 토스트
-         */
-        function showToast() {
+        function showToast(msg) {
             const toast = document.getElementById('toast');
+            toast.textContent = msg;
             toast.style.display = 'block';
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 2500);
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
         }
 
-        // 초기 프레임 하나 추가
-        window.onload = () => {
-            addNewFrame();
-        }
+        window.onload = () => { addNewFrame(); }
     </script>
 </body>
 </html>
