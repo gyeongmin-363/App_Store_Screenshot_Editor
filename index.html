@@ -463,7 +463,10 @@
         async function copyFrame(id) {
             const element = document.getElementById(id);
             const controls = element.querySelector('.controls');
-            controls.style.opacity = '0';
+            const originalDisplay = controls.style.display;
+            
+            // 캡처 시 레이아웃에서 완전히 제거
+            controls.style.display = 'none';
             element.style.transform = 'none';
 
             try {
@@ -475,7 +478,8 @@
                 console.error(err);
                 alert('복사 중 오류가 발생했습니다.');
             } finally {
-                controls.style.opacity = '';
+                // 원래 상태 복구
+                controls.style.display = originalDisplay;
                 element.style.transform = '';
             }
         }
@@ -483,7 +487,10 @@
         async function saveFrame(id) {
             const element = document.getElementById(id);
             const controls = element.querySelector('.controls');
-            controls.style.opacity = '0';
+            const originalDisplay = controls.style.display;
+
+            // 캡처 시 레이아웃에서 완전히 제거
+            controls.style.display = 'none';
             element.style.transform = 'none';
 
             try {
@@ -497,7 +504,8 @@
                 console.error(err);
                 alert('저장 중 오류가 발생했습니다.');
             } finally {
-                controls.style.opacity = '';
+                // 원래 상태 복구
+                controls.style.display = originalDisplay;
                 element.style.transform = '';
             }
         }
