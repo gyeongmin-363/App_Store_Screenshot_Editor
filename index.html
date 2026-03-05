@@ -11,6 +11,11 @@
             --bg-page: #f0f2f5;
             --phone-frame: #1a1a1a;
             --accent: #007aff;
+            /* 글로벌 사이즈 변수 */
+            --frame-width: 340px;
+            --frame-height: 620px;
+            --mockup-width: 250px;
+            --mockup-height: 480px;
         }
 
         body {
@@ -25,7 +30,38 @@
         }
 
         header {
-            padding: 30px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* 글로벌 사이즈 설정 바 */
+        .global-config-bar {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .config-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .config-group input {
+            width: 60px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             text-align: center;
         }
 
@@ -108,8 +144,8 @@
         /* 개별 스크린샷 프레임 - 캡처 대상 */
         .screenshot-frame {
             position: relative;
-            width: 340px;
-            height: 620px;
+            width: var(--frame-width);
+            height: var(--frame-height);
             border-radius: 0; 
             padding: 40px 20px;
             display: flex;
@@ -119,6 +155,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             overflow: hidden;
             box-sizing: border-box;
+            transition: width 0.2s, height 0.2s;
         }
 
         /* 텍스트 편집 영역 */
@@ -154,8 +191,8 @@
 
         /* 휴대폰 목업 - 둥근 모서리 유지 */
         .phone-mockup {
-            width: 250px;
-            height: 480px;
+            width: var(--mockup-width);
+            height: var(--mockup-height);
             background: var(--phone-frame);
             border-radius: 40px;
             padding: 10px;
@@ -163,6 +200,7 @@
             position: relative;
             border: 2px solid #333;
             box-sizing: border-box;
+            transition: width 0.2s, height 0.2s;
         }
 
         .screen-content {
@@ -190,17 +228,18 @@
 
         .upload-hint {
             color: #999;
-            font-size: 12px;
+            font-size: 11px;
             text-align: center;
             pointer-events: none;
-            line-height: 1.5;
+            line-height: 1.4;
+            padding: 0 10px;
         }
 
         /* 추가 버튼 */
         .add-frame-btn {
-            margin-top: 42px; /* 컨트롤 바 높이만큼 보정 */
-            min-width: 340px;
-            height: 620px;
+            margin-top: 50px; /* 상단 도구 모음 높이 고려 */
+            min-width: var(--frame-width);
+            height: var(--frame-height);
             border: 3px dashed #ccc;
             border-radius: 0;
             display: flex;
@@ -252,7 +291,28 @@
 
     <header>
         <h1>App Store Screenshot Editor <span style="color:var(--accent)">Pro</span></h1>
-        <p>상단 도구 모음을 이용해 편집하고 스크린샷 영역만 깔끔하게 저장하세요.</p>
+        
+        <!-- 모든 프레임에 동일하게 적용되는 사이즈 조절 바 -->
+        <div class="global-config-bar">
+            <div class="config-group">
+                <label>프레임 너비</label>
+                <input type="number" value="340" oninput="updateGlobalSize('--frame-width', this.value + 'px')">
+            </div>
+            <div class="config-group">
+                <label>프레임 높이</label>
+                <input type="number" value="620" oninput="updateGlobalSize('--frame-height', this.value + 'px')">
+            </div>
+            <div style="width: 1px; height: 20px; background: #eee;"></div>
+            <div class="config-group">
+                <label>목업 너비</label>
+                <input type="number" value="250" oninput="updateGlobalSize('--mockup-width', this.value + 'px')">
+            </div>
+            <div class="config-group">
+                <label>목업 높이</label>
+                <input type="number" value="480" oninput="updateGlobalSize('--mockup-height', this.value + 'px')">
+            </div>
+        </div>
+        <p style="font-size: 14px; color: #666;">사이즈 조절 시 모든 프레임에 즉시 반영됩니다.</p>
     </header>
 
     <div class="main-container" id="frame-container">
@@ -273,6 +333,13 @@
 
         // 프레임 상태 관리
         const frameStates = {};
+
+        /**
+         * 글로벌 CSS 변수를 업데이트합니다.
+         */
+        function updateGlobalSize(variableName, value) {
+            document.documentElement.style.setProperty(variableName, value);
+        }
 
         /**
          * 새로운 스크린샷 프레임 아이템을 생성합니다.
@@ -322,7 +389,7 @@
                                  ondragover="handleDragOver(event)"
                                  ondragleave="handleDragLeave(event)"
                                  ondrop="handleDrop(event, '${frameId}')">
-                                <div class="upload-hint">이미지 클릭/드래그 업로드<br>(업로드 후 드래그로 위치 조절)</div>
+                                <div class="upload-hint">이미지 클릭/드래그 업로드<br>(위치 조절 가능)</div>
                                 <input type="file" style="display:none" accept="image/*" onchange="handleImageUpload(event, '${frameId}')">
                             </div>
                         </div>
@@ -470,8 +537,6 @@
 
         async function copyFrame(id) {
             const element = document.getElementById(id);
-            // controls가 더 이상 element 내부에 없으므로 숨길 필요가 없음
-
             try {
                 const blob = await htmlToImage.toBlob(element, { pixelRatio: 2, cacheBust: true });
                 const item = new ClipboardItem({ "image/png": blob });
@@ -485,7 +550,6 @@
 
         async function saveFrame(id) {
             const element = document.getElementById(id);
-
             try {
                 const dataUrl = await htmlToImage.toPng(element, { pixelRatio: 2, cacheBust: true });
                 const link = document.createElement('a');
